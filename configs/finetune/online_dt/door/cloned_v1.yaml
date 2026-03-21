@@ -1,0 +1,40 @@
+attention_dropout: 0.1
+batch_size: 4096
+betas:
+- 0.9
+- 0.999
+checkpoints_path: null
+clip_grad: 0.25
+deterministic_torch: false
+device: cuda
+embedding_dim: 128
+embedding_dropout: 0.1
+env_name: "door-cloned-v1"
+episode_len: 1000
+eval_episodes: 100
+eval_every: 5000
+eval_seed: 42
+group: "online-dt-door-cloned-multiseed-v0"
+learning_rate: 0.0008
+max_action: 1.0
+name: "Online-DT"
+num_heads: 1
+num_layers: 3
+project: "CORL"
+residual_dropout: 0.1
+reward_scale: 1.0
+seq_len: 20
+target_returns: [2900, 1450]
+train_seed: 10
+warmup_steps: 10000
+weight_decay: 0.0001
+
+offline_iterations: 100000
+online_iterations: 1000000
+updates_per_iter: 1
+traj_buffer_capacity: 50000
+rtg_gamma: 1.0
+online_sample_actions: true
+eval_sample_actions: false
+stochastic_policy: true
+learn_temperature: true
