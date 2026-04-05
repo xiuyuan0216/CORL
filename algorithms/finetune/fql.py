@@ -132,6 +132,11 @@ def modify_reward_online(reward: float, env_name: str, **kwargs) -> float:
         reward -= 1.0
     return reward
 
+def is_goal_reached(reward: float, info: Dict) -> bool:
+    if "goal_achieved" in info:
+        return info["goal_achieved"]
+    return reward > 0  # Assuming that reaching target is a positive reward
+
 
 @torch.no_grad()
 def eval_actor(
@@ -171,8 +176,7 @@ def eval_actor(
         returns.append(ep_ret)
         scores.append(float(env.get_normalized_score(ep_ret) * 100.0))
 
-        if is_env_with_goal:
-            successes.append(goal_achieved)
+        successes.append(goal_achieved)
         
     agent.actor_onestep_flow.train()
     
@@ -597,6 +601,10 @@ def train(cfg: TrainConfig):
 
     env = gym.make(cfg.env)
     eval_env = gym.make(cfg.env)
+    
+    max_steps_per_episode = env._max_episode_steps
+    
+    is_env_with_goal = cfg.env.startswith(ENVS_WITH_GOAL)
 
     set_seed(cfg.seed, env)
     set_seed(cfg.eval_seed, eval_env)
@@ -672,6 +680,7 @@ def train(cfg: TrainConfig):
     train_successes = []
 
     for i in range(1, total_steps + 1):
+        
         global_step += 1
         
         if i <= cfg.offline_iterations:
@@ -679,10 +688,10 @@ def train(cfg: TrainConfig):
             update_info = agent.update(batch)
         else:
 
-            ob_t = torch.tensor(obs, device=cfg.device, dtype=torch.float32).unsqueeze(0)
-            action = agent.sample_actions(ob_t).squeeze(0).cpu().numpy()
+            obs_t = torch.tensor(obs, device=cfg.device, dtype=torch.float32).unsqueeze(0)
+            action = agent.sample_actions(obs_t).squeeze(0).cpu().numpy()
 
-            next_ob, reward, done, info = env.step(action.copy())
+            next_obs, reward, done, info = env.step(action.copy())
                 
             if not goal_achieved:
                 goal_achieved = is_goal_reached(reward, info)
@@ -697,12 +706,12 @@ def train(cfg: TrainConfig):
 
             replay_buffer.add_transition(
                 dict(
-                    observations=ob,
+                    observations=obs,
                     actions=action,
                     rewards=reward,
                     terminals=float(done),
                     masks=1.0 - float(real_done),
-                    next_observations=next_ob,
+                    next_observations=next_obs,
                 )
             )
 

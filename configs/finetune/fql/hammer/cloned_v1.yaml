@@ -4,13 +4,13 @@ buffer_size: 2000000
 checkpoints_path: null
 device: cuda
 discount: 0.99
-env: pen-cloned-v1
+env: hammer-cloned-v1
 eval_freq: 5000
 group: FQL-D4RL
 offline_iterations: 1000000
 online_iterations: 1000000
 n_episodes: 50
-name: FQL_pen-cloned-v1
+name: FQL_hammer-cloned-v1
 normalize: true
 normalize_reward: false
 project: CORL
