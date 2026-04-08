@@ -284,6 +284,15 @@ class ReplayBuffer:
             raise ValueError("Trying to load data into non-empty replay buffer")
 
         n = dataset["observations"].shape[0]
+        
+        real_terminals = np.zeros((n, 1))
+        
+        for i in range(n - 1):
+            if (np.linalg.norm(dataset['observations'][i + 1] - dataset['next_observations'][i]) > 1e-6 or dataset['terminals'][i] == 1.0):
+                real_terminals[i] = 1
+            else:
+                real_terminals[i] = 0
+                
         if n > self._buffer_size:
             raise ValueError("Replay buffer is smaller than dataset")
 
@@ -291,7 +300,8 @@ class ReplayBuffer:
         self._actions[:n] = self._to_tensor(dataset["actions"])
         self._rewards[:n] = self._to_tensor(dataset["rewards"][..., None])
         self._next_states[:n] = self._to_tensor(dataset["next_observations"])
-        self._terminals[:n] = self._to_tensor(dataset["terminals"][..., None])
+        # self._terminals[:n] = self._to_tensor(dataset["terminals"][..., None])
+        self._terminals[:n] = self._to_tensor(real_terminals)
         self._masks[:n] = 1.0 - self._terminals[:n]
 
         self._size = n
@@ -333,9 +343,9 @@ def build_mlp_from_dims(dims, layer_norm: bool = False) -> nn.Sequential:
     layers = []
     for i in range(len(dims) - 2):
         layers.append(nn.Linear(dims[i], dims[i + 1]))
+        layers.append(nn.GELU())
         if layer_norm:
             layers.append(nn.LayerNorm(dims[i + 1]))
-        layers.append(nn.ReLU())
     layers.append(nn.Linear(dims[-2], dims[-1]))
     return nn.Sequential(*layers)
 
