@@ -863,7 +863,7 @@ def sample_offline_batch(dataset, batch_size, device):
         "next_observations": torch.tensor(dataset['next_observations'][indices], device=device),
         "rewards": torch.tensor(dataset['rewards'][indices], device=device),
         "actions": torch.tensor(dataset['actions'][indices], device=device),
-        "dones": torch.tensor(dataset['terminals'][indices], device=device)
+        "dones": torch.tensor(dataset['real_terminals'][indices], device=device)
     }
     return data
 
@@ -882,7 +882,6 @@ def sample_mix_batch(dataset, rb, batch_size, mixing_ratio, device):
         "dones": torch.concat([data_offline['dones'].unsqueeze(-1), data_online.dones], dim=0)
     }
     return data
-
 
 # ============================================================
 # Main training
@@ -915,6 +914,17 @@ def train(cfg: TrainConfig):
         state_mean, state_std = compute_mean_std(dataset["observations"], eps=1e-3)
     else:
         state_mean, state_std = 0, 1
+    
+    n = dataset["observations"].shape[0]
+    real_terminals = np.zeros((n,), dtype=np.float32)
+        
+    for i in range(n - 1):
+        if (np.linalg.norm(dataset['observations'][i + 1] - dataset['next_observations'][i]) > 1e-6 or dataset['terminals'][i] == 1.0):
+            real_terminals[i] = 1
+        else:
+            real_terminals[i] = 0
+            
+    dataset['real_terminals'] = real_terminals
 
     env = wrap_env(env, state_mean=state_mean, state_std=state_std, reward_scale=1.0)
     eval_env = wrap_env(eval_env, state_mean=state_mean, state_std=state_std, reward_scale=1.0)
